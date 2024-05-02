@@ -1,0 +1,43 @@
+library(ggplot2)
+library(dplyr)
+
+# Assuming the CSV file has been loaded into the `data` variable
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Create a summary for each team as home team
+home_summary <- data %>%
+  group_by(HomeTeam) %>%
+  summarise(TotalHF = sum(HF))
+
+# Create a summary for each team as away team
+away_summary <- data %>%
+  group_by(AwayTeam) %>%
+  summarise(TotalAF = sum(AF))
+
+# Join summaries by team name to compare home and away fouls
+team_summary <- full_join(home_summary, away_summary, by = c("HomeTeam" = "AwayTeam"))
+
+# Rename columns for clarity
+colnames(team_summary) <- c("Team", "Home Fouls", "Away Fouls")
+
+# Assuming team_summary is your dataframe and it already has the columns Team, Home Fouls, and Away Fouls
+long_team_summary <- team_summary %>%
+  pivot_longer(cols = c("Home Fouls", "Away Fouls"), names_to = "Home_Away", values_to = "Fouls")
+
+# Create a bar chart comparing home and away fouls for each team
+ggplot(long_team_summary, aes(x = 2, y = Fouls, fill = Home_Away)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = Fouls), position = position_dodge(width = 0.19), color = "white", size = 3, vjust = -0.5) +
+  coord_polar(start = 0) + 
+  facet_wrap(~ Team) +
+  labs(title = "Pitch Battles Revealed in the Premier League 2015-2016",
+       subtitle = "Comparison of home and away fouls committed by each team",
+       caption = "Source: English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711",
+       x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 14, face = "bold"),
+        plot.subtitle = element_text(size = 10, margin = margin(b = 10)),
+        plot.caption = element_text(margin = margin(t = 10)),
+        legend.title = element_blank()) +
+  scale_fill_manual(values = c("Home Fouls" = "turquoise", "Away Fouls" = "goldenrod"))
