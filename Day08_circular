@@ -1,5 +1,6 @@
-library(ggplot2)
 library(dplyr)
+library(ggplot2)
+library(tidyverse)
 
 # Assuming the CSV file has been loaded into the `data` variable
 data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
