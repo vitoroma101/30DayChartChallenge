@@ -1,1 +1,30 @@
+library(ggplot2)
+library(reshape2)
+
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# First, let's 'melt' the data to have a long structure
+corner_data_long <- melt(data, id.vars = c("HomeTeam", "AwayTeam"), 
+                         measure.vars = c("HC", "AC"),
+                         variable.name = "CornerType", 
+                         value.name = "Corners")
+
+# Create a 'Team' and 'Location' column for easier visualization
+corner_data_long$Team <- ifelse(corner_data_long$CornerType == "HC", corner_data_long$HomeTeam, corner_data_long$AwayTeam)
+corner_data_long$Location <- ifelse(corner_data_long$CornerType == "HC", "Home", "Away")
+
+library(plotly)
+
+ggplot(corner_data_long, aes(x = Team, y = Corners, fill = Location)) +
+  geom_boxplot() +
+  labs(title = "Tales from the Touchline: Stealthy Moves of the Premier League 2015-2016",
+       subtitle = "Comparison of home and away corner kicks by each team",
+       x = "Team",
+       y = "Corners",
+       fill = "Location",
+       caption = "Source: English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711") +
+  scale_fill_manual(values = c("Home" = "#17a2b8", "Away" = "#f88379")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.caption = element_text(hjust = 1)) # Align to the right
 
