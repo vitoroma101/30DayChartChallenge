@@ -1,1 +1,50 @@
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
 
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Create summaries of total shots and shots on target for each team both home and away
+home_summary <- data %>%
+  group_by(HomeTeam) %>%
+  summarise(
+    TotalHomeShots = sum(HS), # Added: Total home shots
+    TotalHomeShotsOnTarget = sum(HST)
+  )
+
+away_summary <- data %>%
+  group_by(AwayTeam) %>%
+  summarise(
+    TotalAwayShots = sum(AS), # Added: Total away shots
+    TotalAwayShotsOnTarget = sum(AST)
+  )
+
+# Merge both summaries into a single dataframe
+shots_summary <- full_join(home_summary, away_summary, by = c("HomeTeam" = "AwayTeam")) %>%
+  rename(Team = HomeTeam) # Rename to have a common column for the team
+
+# Sort the dataframe from highest to lowest based on total shots at home
+shots_summary <- shots_summary %>%
+  arrange(desc(TotalHomeShots + TotalAwayShots))
+
+# Create a unique id for each team for the X axis
+shots_summary <- shots_summary %>%
+  mutate(TeamID = row_number())
+
+ggplot(shots_summary, aes(x = TeamID)) +
+  geom_line(aes(y = TotalHomeShots, color = "Total Home Shots"), size = 1.5) +
+  geom_line(aes(y = TotalAwayShots, color = "Total Away Shots"), size = 1.5) +
+  geom_line(aes(y = TotalHomeShotsOnTarget, color = "Home Shots on Target"), size = 1.5) +
+  geom_line(aes(y = TotalAwayShotsOnTarget, color = "Away Shots on Target"), size = 1.5) +
+  scale_color_manual(values = c(
+    "Total Home Shots" = "#1E90FF",  # Vivid Blue
+    "Total Away Shots" = "#ADD8E6",  # Light Blue
+    "Home Shots on Target" = "#FF4500", # Vivid Red
+    "Away Shots on Target" = "#FF7F50")) + # Coral Light
+  labs(x = "Team", y = "Number of Shots", color = "Shot Types", 
+       title = "A Major Look at Minor Details in the Premier League 2015-2016",
+       subtitle = "Shots and Shots on Target for Home and Away by each team",
+       caption = "Source: English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 65, hjust = 1)) +
+  scale_x_continuous(breaks = shots_summary$TeamID, labels = shots_summary$Team)
