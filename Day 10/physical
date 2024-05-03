@@ -1,1 +1,25 @@
+library(dplyr)
+library(ggplot2)
 
+# Read the dataset
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Create a summary of results by team and match moment (HT/FT)
+results_by_team <- data %>%
+  mutate(Team = HomeTeam) %>%
+  pivot_longer(cols = c(FTR, HTR), names_to = "MatchMoment", values_to = "Result") %>%
+  count(Team, MatchMoment, Result)
+
+# Generate a stacked circular bar plot for each team
+ggplot(results_by_team, aes(x = MatchMoment, y = n, fill = Result)) +
+  geom_bar(stat = "identity") +
+  coord_polar(theta = "x") + 
+  facet_wrap(~ Team, ncol = 4) + 
+  scale_fill_manual(values = c("H" = "yellow", "D" = "gray", "A" = "black"),
+                    labels = c("H" = "Home Team Advantage", "D" = "Draw", "A" = "Away Team Advantage")) +
+  labs(title = "From Kickoff to Final Whistle: The 2015-2016 Premier League Outcome Odyssey",
+       subtitle = "Each circular stack's left half represents Half Time Results (HTR) and the right half Full Time Results (FTR)",
+       caption = "Source: English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711") +
+  theme_void() +
+  theme(legend.position = "bottom", plot.title = element_text(size = 16), plot.subtitle = element_text(size = 10), plot.caption = element_text(hjust = 0.5)) +
+  guides(fill = guide_legend(title = "Match Outcome"))
