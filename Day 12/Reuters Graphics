@@ -1,1 +1,48 @@
+library (dplyr)
+library(tidyverse)
+library(ggplot2)
+
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Create a summary for each team as home
+home_summary <- data %>%
+  group_by(HomeTeam) %>%
+  summarise(TotalFTHG = sum(FTHG))
+
+# Create a summary for each team as away
+away_summary <- data %>%
+  group_by(AwayTeam) %>%
+  summarise(TotalFTAG = sum(FTAG))
+
+# Merge the summaries by team name to compare goals at home and away
+team_summary <- full_join(home_summary, away_summary, by = c("HomeTeam" = "AwayTeam"))
+
+# Rename columns for clarity
+colnames(team_summary) <- c("Team", "Home Goals", "Away Goals")
+
+# Calculate the goal differential for each team
+team_summary <- team_summary %>%
+  mutate(Goal_Differential = `Home Goals` - `Away Goals`) %>%
+  arrange(desc(Goal_Differential))  # Sort by goal differential in descending order
+
+ggplot(team_summary, aes(x = reorder(Team, Goal_Differential), y = Goal_Differential, fill = Goal_Differential > 0)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("TRUE" = "#ff8000", "FALSE" = "#333333")) +  # Reuters colors
+  labs(title = "Geography of Goals: Analyzing Home and Away Differentials in the Premier League 2015-2016",
+       subtitle = "A positive differential reveals more goals netted at home",
+       x = "Team",  # X-axis label
+       y = "Goal Differential",  # Y-axis label
+       caption = "Source: English Premier League Dataset Exploration provided by Kaggle | Reuters, Apr. 12, 2024 | By @micosapiens711") +
+  theme_minimal(base_family = "sans-serif") +
+  theme(
+    legend.position = "none",  # Hide legend
+    plot.title = element_text(family = "sans-serif", face = "bold", size = 14, colour = "#333333"),
+    plot.subtitle = element_text(family = "sans-serif", size = 12, colour = "#999999"),
+    plot.caption = element_text(family = "sans-serif", size = 8),
+    panel.grid.major.y = element_blank(),  # Remove major horizontal gridlines
+    panel.grid.minor.y = element_blank(),  # Remove minor horizontal gridlines
+    panel.grid.major.x = element_line(colour = "grey80"),  # Keep only major vertical gridlines
+    panel.grid.minor.x = element_blank()   # Remove minor vertical gridlines
+  ) +
+  coord_flip()  # Apply coord_flip after defining axis titles
 
