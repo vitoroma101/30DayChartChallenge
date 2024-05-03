@@ -1,1 +1,42 @@
+library(readr)  
+library(ggplot2)
+library(dplyr)
 
+# Load the data
+data <- read_csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/ADO%202024_GDP%20growth.csv")
+
+# Convert 'Year' to character if necessary and filter the data appropriately
+data <- data %>%
+  mutate(Year = as.character(Year))  # Ensure that the year is treated as text
+
+# Filter data for Central Asia and the Caucasus including all forecast years
+central_asia_data <- data %>%
+  filter(RegionalMember %in% c("Kazakhstan", "Kyrgyz Republic", "Tajikistan", "Turkmenistan", 
+                               "Uzbekistan", "Azerbaijan", "Armenia", "Georgia"),
+         Year %in% c("2019", "2020", "2021", "2022", "2023", "2024 forecast", "2025 forecast"))
+
+# Find the position of Turkmenistan in 2019 and 2020 to assign new GDP growth values due to previously missing data in these years.
+indices_2019 <- which(central_asia_data$RegionalMember == "Turkmenistan" & central_asia_data$Year == "2019")
+indices_2020 <- which(central_asia_data$RegionalMember == "Turkmenistan" & central_asia_data$Year == "2020")
+# Assign new GDP growth values
+central_asia_data$`GDP growth`[indices_2019] <- 6.3
+central_asia_data$`GDP growth`[indices_2020] <- -3.4
+
+# Create the GDP growth line chart with ggplot
+ggplot(central_asia_data, aes(x = Year, y = `GDP growth`, group = RegionalMember, color = RegionalMember)) +
+  geom_line(size = 1) +  # Set line width to 1 for finer lines
+  geom_point(size = 2, shape = 21, fill = "white") +  # Larger points with white fill
+  theme_minimal() +
+  labs(title = "Post-Pandemic Economic Recovery in Central Asian and Caucasus Countries (2019-2025)", 
+       x = "Year",  # English label for the x-axis
+       y = "GDP Growth (%)",  # English label for the y-axis
+       subtitle = "Recovery Shapes Explained: V-shaped for Rapid Rebound, U-shaped for Gradual Recovery, W-shaped for Double-Dip Recession, and L-shaped for Prolonged Downturn",
+       caption = "Source: Asian Development Bank\nCreated by: @micosapiens711",
+       color = "Regional Member") +  # Update legend title
+  scale_color_manual(values = rainbow(length(unique(central_asia_data$RegionalMember)))) +
+  theme(plot.title = element_text(size = 16),  # Adjust title size
+        plot.subtitle = element_text(size = 12),  # Adjust subtitle size
+        plot.caption = element_text(size = 10),  # Adjust caption size
+        axis.title = element_text(size = 14),  # Adjust axis label size
+        axis.text = element_text(size = 12),  # Adjust axis text size
+        legend.title = element_text(size = 12))  # Adjust legend title size
