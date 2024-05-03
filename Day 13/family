@@ -1,1 +1,45 @@
+library(foreign)
+library(dplyr)
+library(factoextra)
+library(cluster)
+library(ggplot2)
+
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Create a summary for each team as a home team
+home_summary <- data %>%
+  group_by(HomeTeam) %>%
+  summarise(TotalFTHG = sum(FTHG), TotalHTHG = sum(HTHG))
+
+# Create a summary for each team as an away team
+away_summary <- data %>%
+  group_by(AwayTeam) %>%
+  summarise(TotalFTAG = sum(FTAG), TotalHTAG = sum(HTAG))
+
+# Merge the summaries by team
+team_summary <- full_join(home_summary, away_summary, by = c("HomeTeam" = "AwayTeam"))
+
+# Rename the columns
+names(team_summary)[1] <- "Team"
+
+# Extract team names
+Teams <- team_summary$Team  
+
+# Create a new dataframe excluding the team column:
+base <- as.data.frame((team_summary[,-1]))
+# Assign team names as row names
+row.names(base) <- Teams
+
+set.seed(1234) # Set the random seed for reproducibility
+
+cnj <- kmeans(base, 4) # Calculating with 4 clusters
+cnj
+
+fviz_cluster(cnj, data = base) +
+  ggtitle("Uncovering Team Relationships in the Premier League 2015-2016") + 
+  labs(subtitle = "Clustering Analysis Through Home vs. Away Scoring at Half and Full Time",
+       caption = "English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711") +
+  theme(plot.title = element_text(hjust = 0.5, size = 20),  # Center and set title size
+        plot.subtitle = element_text(hjust = 0.5, size = 16),  # Center and set subtitle size
+        plot.caption = element_text(hjust = 1, size = 8))  # Align left and set font size for caption
 
