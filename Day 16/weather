@@ -1,1 +1,30 @@
+library(dplyr)
+library(ggplot2)
+
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Employing a metaphorical approach due to the absence of explicit weather data in the Premier League 2015-16 dataset, we classify match types based on goal difference
+data <- data %>%
+  mutate(goal_difference = abs(FTHG - FTAG),
+         match_type = case_when(
+           goal_difference >= 2 ~ "Sunny (Clear Victory)",
+           FTR == "D" ~ "Stormy (Draw)",
+           TRUE ~ "Normal (Tightly Contested)"
+         ))
+
+# Prepare data for plotting
+results <- data %>%
+  group_by(match_type) %>%
+  summarise(total = n())
+
+# Graph
+ggplot(results, aes(x = match_type, y = total, fill = match_type)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "How Was the Weather in the Premier League 2015-2016 Season?",
+       subtitle = "In this context, 'Sunny' matches represent clear victories by two goals or more, 'Stormy' matches are tightly contested or end in draws, and 'Normal' matches involve closer contests, typically decided by a single goal",
+       caption = "Source: English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711",       
+       x = "Match Type",
+       y = "Number of Matches") +
+  theme(legend.title = element_blank()) # This will remove the legend title
 
