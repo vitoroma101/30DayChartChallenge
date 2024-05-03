@@ -1,1 +1,55 @@
+library(ggplot2)
+library(dplyr)
+
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Summarize goals, shots on target, and total shots for each team as home and away
+home_summary <- data %>%
+  group_by(HomeTeam) %>%
+  summarise(
+    TotalHomeGoals = sum(FTHG),
+    TotalHomeShotsOnTarget = sum(HST),
+    TotalHomeShots = sum(HS)
+  )
+
+away_summary <- data %>%
+  group_by(AwayTeam) %>%
+  summarise(
+    TotalAwayGoals = sum(FTAG),
+    TotalAwayShotsOnTarget = sum(AST),
+    TotalAwayShots = sum(AS)
+  )
+
+# Merge summaries by team name for a comprehensive view of goals and shots
+team_summary <- full_join(home_summary, away_summary, by = c("HomeTeam" = "AwayTeam")) %>%
+  rename(Team = HomeTeam) # Rename column for a generic team name
+
+# Calculate efficiency and effectiveness metrics
+team_summary <- team_summary %>%
+  mutate(
+    HomeChanceConversion = TotalHomeGoals / TotalHomeShotsOnTarget,
+    AwayChanceConversion = TotalAwayGoals / TotalAwayShotsOnTarget,
+    HomeShootingAccuracy = TotalHomeShotsOnTarget / TotalHomeShots,
+    AwayShootingAccuracy = TotalAwayShotsOnTarget / TotalAwayShots
+  )
+
+ggplot(team_summary, aes(x = Team)) +
+  geom_tile(aes(y = "Home Chance Conversion", fill = HomeChanceConversion)) +
+  geom_tile(aes(y = "Away Chance Conversion", fill = AwayChanceConversion)) +
+  geom_tile(aes(y = "Home Shooting Accuracy", fill = HomeShootingAccuracy)) +
+  geom_tile(aes(y = "Away Shooting Accuracy", fill = AwayShootingAccuracy)) +
+  scale_fill_gradient(low = "blue", high = "red") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(angle = 0),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  ) +
+  labs(
+    title = "Targeting Success: Analyzing Key Ratios in the Premier League 2015-2016",
+    subtitle = "For this analysis, Chance Conversion is calculated as goals divided by shots on target (as a proxy for big chances), while Shooting Accuracy is shots on target divided by total shots",
+    fill = "Metric Value",
+    caption = "Source: English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711"
+  )
 
