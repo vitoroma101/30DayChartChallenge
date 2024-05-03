@@ -1,1 +1,68 @@
+library(tidyverse)
+library(dplyr)
+library(igraph)
+library(ggraph)
+library(scales)
+
+# Load the data 
+db <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/Dragon_Ball_Data_Set.csv")
+
+# Filter for the "Frieza Saga"
+frieza_data <- db %>%
+  filter(Saga_or_Movie == "Frieza Saga")
+
+# Use gsub to remove commas and convert to numeric within a mutate to preserve the dataframe
+frieza_data <- frieza_data %>%
+  mutate(Power_Level = as.numeric(gsub(",", "", Power_Level)))
+
+# Exclude specific forms of Frieza and either Piccolo or Gohan
+goku_frieza_data <- frieza_data %>%
+  filter(grepl("Goku|Frieza|Freiza", Character)) %>%
+  filter(!Character %in% c("Goku (Zenkai)", "Piccolo (fighting Frieza)", "Gohan", "Gohan's attack on Frieza", "Frieza", "2nd form Frieza (suppressed)", "Frieza (powered up)", "2nd form Frieza (full power)", "Frieza (3rd form)"))
+
+# Create character pairs for relationships
+edges <- goku_frieza_data %>%
+  distinct(Character) %>%
+  mutate(dummy = 1) %>%
+  full_join(., ., by = "dummy", relationship = "many-to-many") %>%
+  select(from = Character.x, to = Character.y) %>%
+  filter(from != to) %>%
+  distinct()
+
+# To avoid duplicate edges in opposite directions, we can sort and remove duplicates
+edges <- edges %>%
+  rowwise() %>%
+  mutate(pair = list(sort(c(from, to)))) %>%
+  ungroup() %>%
+  distinct(pair, .keep_all = TRUE) %>%
+  select(-pair)
+
+# Create a DataFrame of nodes ensuring each character is unique
+# Assumes the maximum power level recorded should be kept if there are duplicates
+nodes <- goku_frieza_data %>%
+  group_by(Character) %>%
+  summarize(Power_Level = max(Power_Level, na.rm = TRUE)) %>%
+  ungroup()
+
+# Ensure that edges do not contain self-connections
+edges <- edges %>%
+  filter(from != to)
+
+# Create the graph object
+graph <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+set.seed(123) # The node layout in the graph may vary with each run due to the random component of the Fruchterman-Reingold algorithm ('fr'). Using set.seed(<number>) before creating the graph can help achieve a more consistent layout.
+
+ggraph(graph, layout = 'fr') +
+  geom_edge_link(color = 'grey', alpha = 0.5) +
+  geom_node_point(aes(size = Power_Level), color = "steelblue", alpha = 0.9) +
+  geom_node_text(aes(label = name), vjust = 1.5, size = 3, repel = TRUE, color = "darkred") +
+  scale_size_continuous(name = "Power Level", 
+                        labels = comma,  # Use the comma function to avoid scientific notation
+                        range = c(3, 10)) +
+  ggtitle("Network Analysis of Goku vs. Frieza: The Battle of Transformative Powers")+
+  labs(subtitle = "Goku's Super Saiyan Transformation Peaks at 150 Million Power Units",
+  caption="Source: Dragon_Ball_Data_Set provided by Kaggle\nCreated by: @micosapiens711") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10))  # Adjust the size of the legend text if necessary
 
