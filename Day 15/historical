@@ -1,1 +1,56 @@
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(tidyverse)
 
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+
+# Add columns for home and away points based on the match outcome
+data <- data %>%
+  mutate(Date = dmy(Date),  # Convert date to appropriate format
+         HomePoints = ifelse(FTR == 'H', 3, ifelse(FTR == 'D', 1, 0)),
+         AwayPoints = ifelse(FTR == 'A', 3, ifelse(FTR == 'D', 1, 0))) %>%
+  select(Date, HomeTeam, AwayTeam, HomePoints, AwayPoints)
+
+
+# Create a long column with all teams and their points
+data_long <- data %>%
+  pivot_longer(cols = c(HomeTeam, AwayTeam), names_to = "HomeAway", values_to = "Team") %>%
+  pivot_longer(cols = c(HomePoints, AwayPoints), names_to = "HomeAwayPoints", values_to = "Points") %>%
+  filter((HomeAway == "HomeTeam" & HomeAwayPoints == "HomePoints") | 
+           (HomeAway == "AwayTeam" & HomeAwayPoints == "AwayPoints")) %>%
+  select(-HomeAway, -HomeAwayPoints) %>%
+  mutate(Team = as.factor(Team)) %>%
+  group_by(Team) %>%
+  arrange(Team, Date) %>%
+  mutate(CumulativePoints = cumsum(Points))
+
+# Assign match numbers within each team
+data_long <- data_long %>%
+  mutate(MatchNumber = row_number()) %>%
+  group_by(Team) %>%
+  mutate(MatchNumber = row_number())
+
+# Create the plot of cumulative points evolution with matches on the X axis
+ggplot(data_long, aes(x = MatchNumber, y = CumulativePoints, color = Team, group = Team)) +
+  geom_line() + # Draw the lines
+  scale_x_continuous(breaks = 1:38) + # Ensure match numbers are displayed correctly
+  scale_color_discrete(guide = guide_legend(override.aes = list(size=4))) +
+  labs(x = "Round", y = "Points", 
+       title ="Season-long points race of all Premier League teams in the 2015-2016 season",
+       caption = "Source: English Premier League Dataset Exploration provided by Kaggle\nCreated by: @micosapiens711") +
+  theme_minimal(base_family = "sans") + 
+  theme(
+    plot.background = element_rect(fill = "black"), # Black background for the plot
+    panel.background = element_rect(fill = "black"), # Black background for the panel
+    panel.grid.major = element_line(color = "grey30"), # Light gray lines for major grid
+    panel.grid.minor = element_line(color = "grey20"), # Darker gray lines for minor grid
+    text = element_text(color = "white"), # General text in white
+    axis.text = element_text(color = "white"), # Axis text in white
+    axis.title = element_text(color = "white"), # Axis titles in white
+    legend.text = element_text(color = "white"), # Legend text in white
+    legend.title = element_text(color = "white"), # Legend title in white
+    legend.background = element_rect(fill = "black"), # Black background for legend
+    legend.key = element_rect(fill = "black", color = NA) # Black background for legend keys
+  )
