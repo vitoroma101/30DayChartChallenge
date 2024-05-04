@@ -1,1 +1,74 @@
+# Load required libraries
+library(dplyr)
+library(ggplot2)
+library(forecast)
 
+#Analyzing Climate Data: Temperature and Precipitation Time Series
+
+###_________________________________________________TEMPERATURE
+
+# Read the temperature data
+datatemp <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/inamhi-temperaturamedia-2019diciembre.csv", header = TRUE, sep = ";", dec = ",")
+
+# Filter data by year range and station name
+filtered_data_temp <- datatemp[datatemp$NombreEstacion == "BUCAY" & datatemp$anio %in% 1974:1984, ]
+
+# Create a vector of months
+months <- factor(c('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'), levels = c('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'))
+
+# Convert filtered data into a one-dimensional vector of average temperatures
+average_temperatures <- as.numeric(unlist(filtered_data_temp[, 7:18]))
+
+# Create a time sequence for the years from 1974 to 1984, for each month
+dates_temp <- seq(as.Date("1970-01-01"), by = "month", length.out = length(average_temperatures))
+
+# Create a time series with the average temperatures
+time_series_temp <- ts(average_temperatures, start = c(1974, 1), frequency = 12)
+
+# Plot the time series
+plot(time_series_temp, xlab = "Year", ylab = "Average Temperature", main = "Monthly Average Temperature in BUCAY (1974-1984)", col = "blue", type = "o")
+
+###_________________________________________________PRECIPITATION
+
+# Read the precipitation data
+dataprec <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/inamhi-precipitacion-2019diciembre.csv", header = TRUE, sep = ";", dec = ",")
+
+# Filter data by year range and station name
+filtered_data_precip <- dataprec[dataprec$NombreEstacion == "BUCAY" & dataprec$anio %in% 1974:1984, ]
+
+# Convert filtered data into a one-dimensional vector of total precipitations
+total_precipitations <- as.numeric(unlist(filtered_data_precip[, 7:18]))
+
+# Create a time sequence for the years from 1974 to 1984, for each month
+dates_precip <- seq(as.Date("1974-01-01"), by = "month", length.out = length(total_precipitations))
+
+# Create a time series with the total precipitations
+time_series_precip <- ts(total_precipitations, start = c(1974, 1), frequency = 12)
+
+# Plot the time series
+plot(time_series_precip, xlab = "Year", ylab = "Precipitation", main = "Total Monthly Precipitation in BUCAY (1974-1984)", col = "blue", type = "o")
+
+# Fit auto ARIMA models
+model_temp <- auto.arima(time_series_temp)
+model_precip <- auto.arima(time_series_precip)
+
+# The residuals, 'model_temp$residuals' and 'model_precip$residuals', are utilized for cross-correlation.
+ccf_result <- ccf(model_temp$residuals, model_precip$residuals, lag.max=36, plot=F)
+
+# Convert the CCF result to a data frame for ggplot
+ccf_df <- data.frame(Lag=as.numeric(ccf_result$lag), CrossCorrelation=ccf_result$acf)
+
+# Create the plot
+ggplot(ccf_df, aes(x=Lag, y=CrossCorrelation)) +
+  geom_bar(stat="identity", fill=ifelse(ccf_df$CrossCorrelation > 0, "palegreen", "darkslategray")) +
+  theme_minimal() +
+  geom_hline(yintercept=0, linetype="dashed", color="black") +
+  geom_hline(yintercept=c(0.170593, -0.170593), linetype="dotted", color="blue") + # Assuming 0.2 is the significance threshold
+  labs(title="Cross-Correlation Between Average Temperature and Total Precipitation",
+       subtitle="Bucay-Guayas-Ecuador, 1974 - 1984",
+       x="Lag",
+       y="Cross-correlation",
+       caption="Source: Datos Abiertos Ecuador\nCreated by: @micosapiens711") +
+  theme(plot.title = element_text(hjust = 0.5), # Center the title
+        plot.subtitle = element_text(hjust = 0.5), # Center the subtitle
+        plot.caption = element_text(hjust = 1)) # Align the caption to the right
