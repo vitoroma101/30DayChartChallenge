@@ -1,1 +1,52 @@
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(lubridate)
+
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/hotel_bookings.csv")
+
+# Filter the data to include only the year 2016
+data_2016 <- data %>%
+  filter(arrival_date_year == 2016)
+
+# Make sure the 'arrival_date_month' column is in the correct format
+# Convert the month name to date format (for proper sorting later)
+data_2016$arrival_date_month <- match(data_2016$arrival_date_month, month.name)
+
+# Calculate the "non-cancellation rate" that will give us an idea of the occupancy
+monthly_stats <- data_2016 %>%
+  group_by(hotel, arrival_date_month) %>%
+  summarize(
+    estimated_occupancy = mean(is_canceled == 0),  # Calculate the average of non-canceled bookings
+    cancellation_rate = mean(is_canceled),         # Calculate the cancellation rate
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    month = factor(arrival_date_month, levels = 1:12, labels = month.abb)  # Convert months to factors for proper ordering
+  )
+
+# Create the plot
+ggplot(monthly_stats, aes(x = month, y = hotel, fill = estimated_occupancy)) +
+  geom_tile(color = "black") +
+  geom_point(aes(size = cancellation_rate), pch = 21, fill = "black") +
+  scale_fill_gradient(low = "#4575B4", high = "#D73027", name = "Estimated Occupancy Rate") +
+  scale_size_area(max_size = 10, name = "Cancellation Rate (%)") +  # Scale the point size based on cancellation rate
+  theme_minimal() +
+  labs(
+    title = "2016 Hotel Bookings: Estimated Occupancy and Cancellation Rate by Month",
+    subtitle ="Estimated Occupancy represents the average of non-canceled bookings, serving as a proxy for occupancy rate",
+    caption = "Source: Hotel_bookings provided by Kaggle\nCreated by: @micosapiens711",
+    fill = "Estimated Occupancy Rate",
+    size = "Cancellation Rate (%)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 0, vjust = 0.5),  
+    axis.ticks.x = element_blank(),  
+    axis.text.y = element_text(angle = 0, hjust = 1),  
+    axis.title.x = element_blank(),  
+    axis.title.y = element_blank(),  
+    legend.position = "bottom",  
+    legend.title.align = 0.5  
+  ) +
+  coord_fixed(ratio = 1)  
 
