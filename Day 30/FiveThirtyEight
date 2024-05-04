@@ -1,1 +1,57 @@
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggthemes) # Load the 'ggthemes' package to use predefined themes like FiveThirtyEight, which is the theme day
 
+# Load the dataset using the provided URL, where it's hosted. The same dataset can also be found in the root folder of the current repository.
+data <- read_excel("https://datosabiertos.gob.ec/dataset/4a46dcdd-d617-4931-9aa3-681858adb795/resource/f6504490-4705-43a9-b84c-c0b9c9485380/download/1era-quincena-octubre-catastro-nacional-2023-banecuador-sri.xlsx")
+
+# Display a frequency table of the 'Actividad / Modalidad' column to understand the data distribution, which will later be useful for the translation of activity/modality categories.
+table(data$`Actividad / Modalidad`) 
+
+# Translation of activity/modality categories
+translations <- c(
+  "ALIMENTOS Y BEBIDAS" = "Food and Beverages",
+  "OPERACIÓN E INTERMEDIACIÓN" = "Operation and Mediation",
+  "ORGANIZADORES DE EVENTOS, CONGRESOS Y CONVENCIONES" = "Event, Congress and Convention Organizers",
+  "TRANSPORTE TURÍSTICO" = "Touristic Transport",
+  "ALOJAMIENTO" = "Accommodation",
+  "CENTROS DE TURISMO COMUNITARIO" = "Community Tourism Centers",
+  "PARQUES DE ATRACCIONES ESTABLES" = "Stable Amusement Parks"
+)
+
+data <- data %>%
+  mutate(
+    Activity_Modality= translations[`Actividad / Modalidad`],
+    Digital_Presence = case_when(
+      !is.na(`Dirección Web`) & !is.na(`Correo Electrónico`) ~ "Both",
+      is.na(`Dirección Web`) & !is.na(`Correo Electrónico`) ~ "Email Only",
+      !is.na(`Dirección Web`) & is.na(`Correo Electrónico`) ~ "Web Only",
+      TRUE ~ "None"
+    )
+  )
+
+# Update X-axis labels to be simpler and let the legend provide the information
+data <- data %>%
+  mutate(Digital_Presence_Category = factor(Digital_Presence, labels = c("1", "2", "3", "4")))
+
+# Create the bar chart using the FiveThirtyEight theme
+ggplot(data, aes(x = Digital_Presence, fill = Digital_Presence)) +
+  geom_bar(stat = "count") +
+  facet_wrap(~Activity_Modality, scales = "free_y") +
+  labs(
+    title = "Digital Contact Channels of Ecuador's Tourism Industry by Activity",
+    subtitle = "Data updated up to November 9th, 2023",
+    caption = "Source: Ministerio de Turismo on Datos Abiertos Ecuador | FIVETHIRTYEIGHT | By @micosapiens711",
+    x = "",
+    y = "Number of Establishments",
+    fill = "Channels"
+  ) +
+  scale_fill_brewer(palette = "Dark2") +
+  theme_fivethirtyeight() +  # Apply the FiveThirtyEight theme
+  theme(
+    axis.text.x = element_blank(),  # Hide X-axis text
+    axis.ticks.x = element_blank(),  # Hide X-axis ticks
+    strip.text.x = element_text(angle = 0, size = 8, face = "bold")  # Adjust facet labels
+  )
