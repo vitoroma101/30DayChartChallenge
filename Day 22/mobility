@@ -1,1 +1,52 @@
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+
+# Read the data
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/dataclips_fbkrwnzullhoggqxrynyqpmerrdm.csv")
+
+# Ensure 'start_year' and 'length' columns are in numeric format
+data$start_year <- as.numeric(as.character(data$start_year))
+data$length <- as.numeric(as.character(data$length))
+
+# Fixing instances
+data <- data %>%
+  mutate(name = ifelse(name == "São Paulo", "Sao Paulo", name),
+         name = ifelse(name == "Valparaíso", "Valparaiso", name))
+
+# Filter the 25 oldest and longest underground railway systems
+underground_railways <- data %>%
+  filter(length > 0) %>% 
+  arrange(start_year, desc(length)) %>%
+  head(25)
+
+# Generate a color palette with the necessary number of colors
+number_of_colors <- length(unique(underground_railways$country))
+palette <- colorRampPalette(brewer.pal(9, "Set1"))(number_of_colors)
+
+# Generate a custom color palette for countries
+countries <- unique(underground_railways$country)
+palette <- colorRampPalette(RColorBrewer::brewer.pal(min(9, length(countries)), "Set1"))(length(countries))
+
+library(ggrepel) # For text labels with automatic avoidance of overlapping
+
+ggplot(underground_railways, aes(x = start_year, y = length/1000)) +
+  geom_segment(aes(xend = start_year, yend = 0, color = country), size = 1.5) +
+  geom_point(aes(color = country), size = 4) +
+  geom_text_repel(aes(label = name, color = country),
+                  size = 2.75,
+                  box.padding = unit(0.35, "lines"),
+                  point.padding = unit(0.5, "lines"),
+                  max.overlaps = Inf) +
+  scale_color_manual(values = palette, name = "Country") +
+  theme_minimal() +
+  labs(x = "Year of Inception", y = "Length (km)", title = "Cornerstones of Mobility: The 25 Oldest Transport Lines and Their Lengths",
+       caption = "Source: 'World Transit Systems' dataset by citylines.co on Kaggle\nCreated by: @micosapiens711") +
+  theme(
+    legend.position = "bottom",
+    panel.background = element_rect(fill = "lightblue", colour = "grey50", size = 0.5, linetype = "solid")
+  ) +
+  scale_x_continuous(breaks = seq(1800, max(underground_railways$start_year), by = 10))
+
 
