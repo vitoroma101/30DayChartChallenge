@@ -1,1 +1,81 @@
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(rvest)
+library(lubridate)
+
+# Data is sourced from an online webpage
+url <- 'https://en.wikipedia.org/wiki/The_Land_Before_Time'
+
+# Read the page
+page <- read_html(url)
+
+# Extract all tables from the page
+tables <- page %>% html_nodes("table")
+
+# Try to convert each HTML table into a list of data frames
+list_of_tables <- lapply(tables, html_table, fill = TRUE)
+
+# Displaying the first few rows of the first table extracted from the webpage
+head(list_of_tables[[1]])
+
+# LOOP TO IDENTIFY THE TABLE CONTAINING THE MOVIES
+for (i in 1:length(list_of_tables)) {
+  print(paste("Checking table", i))
+  print(head(list_of_tables[[i]]))
+}
+
+# Using the second table containing the movies information
+movies_table <- list_of_tables[[2]]
+
+table(movies_table$`Release Date`)
+
+# First clean up the date column to remove footnotes like '[2]'
+movies_table$`Release Date` <- gsub("\\[.*?\\]", "", movies_table$`Release Date`)
+
+# Now convert the clean dates to date format using lubridate's mdy()
+movies_table$`Release Date` <- mdy(movies_table$`Release Date`)
+
+# Create a 'Year' column from the release date
+movies_table$Year <- year(movies_table$`Release Date`)
+
+# Make sure 'Year' and 'Title' columns are in correct format
+movies_table$Year <- as.numeric(movies_table$Year)
+movies_table$Title <- as.character(movies_table$Title)
+
+# Using a continuous scale for the 'Year' variable to represent the release timeline of the movies
+# Make sure 'Year' is a number so ggplot treats it as continuous
+movies_table$Year <- as.numeric(as.character(movies_table$Year))
+
+# Customize colors here
+color_line <- "#BBBBBB" # Gray color for lines
+color_point <- "#0073C2FF" # Blue color for points
+color_background <- "#4D774E" # A dinosaur green tone
+color_text <- "#FAFAFA" # Light color for text and labels, for contrast
+
+# The lollipop chart
+ggplot(movies_table, aes(x = Title, y = Year)) +
+  geom_segment(aes(xend = Title, yend = min(movies_table$Year)), color = color_line, size = 1) + # Set 'yend' to the minimum year
+  geom_point(size = 5, color = color_point) +
+  scale_y_continuous(breaks = seq(min(movies_table$Year), max(movies_table$Year), by = 1)) +
+  labs(
+    x = "Movie Title",
+    y = "Year of Release",
+    title = "Release Timeline of The Land Before Time Movies",
+    caption = "Source: Wikipedia\nCreated by: @micosapiens711"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    text = element_text(family = "Arial", color = color_text),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12, color = color_text),
+    axis.text.y = element_text(color = color_text),
+    plot.title = element_text(size = 24, face = "bold", color = color_text),
+    plot.caption = element_text(size = 10, color = color_text),
+    panel.background = element_rect(fill = color_background, color = NA), # No borders around the panel
+    plot.background = element_rect(fill = color_background), # Background outside the plot
+    panel.grid.major = element_line(color = "#666666"), # Lighter grid
+    panel.grid.minor = element_blank(), # No minor grid
+    legend.background = element_blank() # No background in legend
+  ) +
+  coord_flip() # Make the plot horizontal and switch axes
 
