@@ -1,1 +1,39 @@
+library(dplyr)
+library(ggplot2)
+library(RColorBrewer)
 
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/Car%20Dataset%201945-2020.csv")
+
+# Filter for pure electric vehicles
+pure_electric_vehicles <- data %>%
+  filter(engine_type == "Electric")
+
+# Make sure Year_from and Make are of the correct type
+pure_electric_vehicles$Year_from <- as.numeric(as.character(pure_electric_vehicles$Year_from))
+pure_electric_vehicles$Make <- as.factor(pure_electric_vehicles$Make)
+
+# Create a count table of vehicles by year and manufacturer
+count_by_year_manufacturer <- pure_electric_vehicles %>%
+  group_by(Year_from, Make) %>%
+  summarise(Count = n(), .groups = "drop") # drop the grouping
+
+# Bubble chart with color gradient and no redundant legend
+ggplot(count_by_year_manufacturer, aes(x = Year_from, y = Make, size = Count)) +
+  geom_point(alpha = 0.7, aes(color = Count)) + # Apply color mapping
+  scale_size(range = c(3, 15), name = "Number of Models") + # Adjust the size of the bubbles
+  scale_color_gradient(low = "skyblue", high = "blue", guide = FALSE) + # Color gradient without a legend
+  labs(
+    x = NULL, # Remove the x-axis label
+    y = NULL, # Remove the y-axis label
+    title = "The Electric Car Race: Annual Rollouts by Manufacturer",
+    subtitle = "Featuring models that utilize only electric fuel type",
+    caption = "Source: Car Specification Dataset 1945-2020 provided by Kaggle\nCreated by: @micosapiens711"
+  ) +
+  theme_minimal(base_family = "Arial") +
+  theme(
+    legend.position = "right", 
+    plot.caption = element_text(hjust = 1), # Right align the caption
+    plot.background = element_rect(fill = "ivory"), # A light ivory background color
+    panel.background = element_rect(fill = "ivory", color = NA) # Match panel background to plot
+  ) +
+  guides(size = guide_legend(override.aes = list(alpha = 1))) # Adjust the legend for size only
