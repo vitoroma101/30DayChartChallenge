@@ -47,7 +47,7 @@ p <- ggplot(data_subset, aes(x = datetime, y = heartRate)) +
   geom_point(data = data_subset %>% filter(is_outlier), 
              aes(color = "Outlier"), size = 3, shape = 18) +  # Highlighted outliers
   scale_color_manual(values = c("Normal" = "#00AFBB", "Outlier" = "#FC4E07")) +  # Colors
-  labs(title = "My Heart Rate on My Birthday",  # Updated to myx birthday
+  labs(title = "My Heart Rate on My Birthday",  # Updated to my birthday
        subtitle = "Outliers: extreme moments from 914 recorded measurements",
        x = "Time",
        y = "Heart Rate (bpm)",
