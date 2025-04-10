@@ -2,7 +2,7 @@ library (dplyr)
 library(tidyverse)
 library(ggplot2)
 
-data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/main/season-1516_csv.csv")
+data <- read.csv("https://raw.githubusercontent.com/vitoroma101/30DayChartChallenge/refs/heads/main/2024/season-1516_csv.csv")
 
 # Create a summary for each team as home
 home_summary <- data %>%
